@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบยื่นใบลา</title>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 0; margin: 0; background-color: #ffffff; color: #333333; }
+    .container { width: 100%; max-width: 100%; margin: 0; padding: 20px; box-sizing: border-box; }
+    h3 { font-size: 22px; margin-top: 10px; margin-bottom: 5px; color: #111111; }
+    .emp-info { font-size: 15px; color: #666666; margin-bottom: 25px; }
+    label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 8px; font-size: 14px; }
+    input, select, textarea { width: 100%; padding: 12px; margin-bottom: 5px; border: 1px solid #cccccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; background-color: #f8f9fa; appearance: none; -webkit-appearance: none; -moz-appearance: none; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #06C755; background-color: #ffffff; }
+    .btn { background-color: #06C755; color: white; border: none; padding: 16px; font-size: 16px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 25px; box-shadow: 0 2px 4px rgba(6, 199, 85, 0.2); }
+    #quota-display { background: #EBF8FF; color: #2B6CB0; padding: 12px; margin-top: 10px; margin-bottom: 10px; font-weight: bold; border-radius: 6px; font-size: 14px; }
+    #loading { font-size: 16px; font-weight: bold; text-align: center; margin-top: 100px; color: #666666; }
+  </style>
+</head>
+<body>
+  <div id="loading">⏳ กำลังตรวจสอบและโหลดข้อมูลพนักงาน...</div>
+
+  <div id="app" class="container" style="display: none;">
+    <h3>📝 ระบบยื่นใบลา</h3>
+    <div class="emp-info">ผู้ขอลา: <span id="emp-name" style="font-weight: bold; color: #111111;">-</span> (<span id="emp-code">-</span>)</div>
+    
+    <label>ประเภทวันลา:</label>
+    <select id="leaveType" onchange="toggleLeaveFields()">
+      <option value="ลาพักร้อน">ลาพักร้อน</option>
+      <option value="ลาป่วย">ลาป่วย</option>
+      <option value="มาสาย">แจ้งเข้างานสาย</option>
+    </select>
+
+    <div id="quota-display" style="display: none;">
+      คงเหลือสิทธิ์ลาพักร้อน: <span id="remaining-days">0</span> วัน
+    </div>
+
+    <div id="date-section">
+      <label>วันที่เริ่มต้น:</label>
+      <input type="date" id="startDate">
+      
+      <div id="startTimeSlotContainer">
+        <label>ช่วงเวลาที่เริ่มลา:</label>
+        <select id="startTimeSlot">
+          <option value="เต็มวัน">เต็มวัน</option>
+          <option value="ครึ่งวันเช้า">ครึ่งวันเช้า</option>
+          <option value="ครึ่งวันบ่าย">ครึ่งวันบ่าย</option>
+        </select>
+      </div>
+
+      <label id="endDateLabel">วันที่สิ้นสุด:</label>
+      <input type="date" id="endDate">
+      
+      <label id="endDateSlotLabel">ช่วงเวลาที่สิ้นสุด:</label>
+      <select id="endTimeSlot">
+        <option value="เต็มวัน">เต็มวัน</option>
+        <option value="ครึ่งวันเช้า">ครึ่งวันเช้า</option>
+        <option value="ครึ่งวันบ่าย">ครึ่งวันบ่าย</option>
+      </select>
+    </div>
+
+    <div id="reason-section" style="display: none;">
+      <label id="reasonLabel">สาเหตุการลา:</label>
+      <textarea id="reason" rows="3" placeholder="ระบุเหตุผลความจำเป็น..."></textarea>
+    </div>
+
+    <button id="submitBtn" class="btn" onclick="submitForm()">ส่งใบลาหยุด</button>
+  </div>
+
+  <script>
+    // URL Deployment ของ Google Apps Script
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyv3UumhkglrhNEAEK0K4gvXEUW26xc6h5frqguNcj00ZyxcbeVa6vi0CFqv9hlPSQpZQ/exec";
+    const LIFF_ID = "2010534223-ihZKH5vA";
+    let currentEmpData = null;
+
+    async function initializeApp() {
+      let lineUserId = "";
+
+      try {
+        await liff.init({ liffId: LIFF_ID });
+        
+        if (liff.isLoggedIn()) {
+          const profile = await liff.getProfile();
+          lineUserId = profile.userId;
+        } else {
+          // สั่งล็อกอิน (บนโฮสต์ภายนอกจะล็อกอินสำเร็จ ไม่ติด iframe ของ Google)
+          liff.login();
+          return;
+        }
+      } catch (err) {
+        console.warn("LIFF Error:", err);
+        const urlParams = new URLSearchParams(window.location.search);
+        lineUserId = urlParams.get('userId') || 'Ue84361b22f70ce9b929304e72fa29edc';
+      }
+
+      callBackendLeaveQuota(lineUserId);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeApp);
+    } else {
+      initializeApp();
+    }
+
+    function callBackendLeaveQuota(lineUserId) {
+      fetch(WEB_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'getQuota', lineUserId: lineUserId })
+      })
+      .then(response => response.json())
+      .then(result => {
+        document.getElementById('loading').style.display = 'none';
+        if (result && result.error) {
+          Swal.fire({ icon: 'error', title: 'ไม่สามารถเปิดระบบได้', text: result.error, confirmButtonColor: '#06C755' });
+          return;
+        }
+        document.getElementById('app').style.display = 'block';
+        currentEmpData = result;
+        document.getElementById('emp-name').innerText = result.empName;
+        document.getElementById('emp-code').innerText = result.empCode;
+        document.getElementById('remaining-days').innerText = result.remainingDays;
+        toggleLeaveFields();
+      })
+      .catch(err => {
+        document.getElementById('loading').style.display = 'none';
+        Swal.fire({ icon: 'error', title: 'การเชื่อมต่อล้มเหลว', text: 'ระบบเครือข่ายขัดข้อง: ' + err.toString(), confirmButtonColor: '#06C755' });
+      });
+    }
+
+    function toggleLeaveFields() {
+      const leaveType = document.getElementById('leaveType').value;
+      const quotaDisplay = document.getElementById('quota-display');
+      const startTimeSlotContainer = document.getElementById('startTimeSlotContainer');
+      const endDateLabel = document.getElementById('endDateLabel');
+      const endDate = document.getElementById('endDate');
+      const endDateSlotLabel = document.getElementById('endDateSlotLabel');
+      const endTimeSlot = document.getElementById('endTimeSlot');
+      const reasonSection = document.getElementById('reason-section');
+      const reasonLabel = document.getElementById('reasonLabel');
+      const reason = document.getElementById('reason');
+      const submitBtn = document.getElementById('submitBtn');
+
+      quotaDisplay.style.display = leaveType === 'ลาพักร้อน' ? 'block' : 'none';
+
+      if (leaveType === 'มาสาย') {
+        startTimeSlotContainer.style.display = 'none';
+        endDateLabel.style.display = 'none';
+        endDate.style.display = 'none';
+        endDateSlotLabel.style.display = 'none';
+        endTimeSlot.style.display = 'none';
+        reasonSection.style.display = 'block';
+        reasonLabel.innerText = 'เวลาที่คาดว่าจะมาถึงบริษัท:';
+        reason.placeholder = 'เช่น 09:30 น. เนื่องจากรถไฟฟ้าขัดข้อง...';
+        submitBtn.innerText = 'ส่งข้อมูลแจ้งมาสาย';
+      } else {
+        startTimeSlotContainer.style.display = 'block';
+        endDateLabel.style.display = 'block';
+        endDate.style.display = 'block';
+        endDateSlotLabel.style.display = 'block';
+        endTimeSlot.style.display = 'block';
+        submitBtn.innerText = 'ส่งใบลาหยุด';
+        
+        if (leaveType === 'ลาป่วย') {
+          reasonSection.style.display = 'block';
+          reasonLabel.innerText = 'สาเหตุการลาป่วย:';
+          reason.placeholder = 'ระบุอาการป่วยความจำเป็น...';
+        } else {
+          reasonSection.style.display = 'none';
+        }
+      }
+    }
+
+    function submitForm() {
+      if (!currentEmpData) return;
+
+      const leaveType = document.getElementById('leaveType').value;
+      const startDate = document.getElementById('startDate').value;
+      const startTimeSlot = document.getElementById('startTimeSlot').value;
+      const endDate = document.getElementById('endDate').value;
+      const endTimeSlot = document.getElementById('endTimeSlot').value;
+      const reason = document.getElementById('reason').value;
+
+      if (!startDate) { Swal.fire({ icon: 'warning', title: 'คำเตือน', text: 'กรุณาระบุวันที่เริ่มต้น', confirmButtonColor: '#06C755' }); return; }
+      if (leaveType !== 'มาสาย' && !endDate) { Swal.fire({ icon: 'warning', title: 'คำเตือน', text: 'กรุณาระบุวันที่สิ้นสุด', confirmButtonColor: '#06C755' }); return; }
+      if ((leaveType === 'ลาป่วย' || leaveType === 'มาสาย') && !reason.trim()) {
+        Swal.fire({ icon: 'warning', title: 'คำเตือน', text: leaveType === 'ลาป่วย' ? 'กรุณาระบุสาเหตุการลา' : 'กรุณาระบุเวลาที่คาดว่าจะมาถึงบริษัท', confirmButtonColor: '#06C755' });
+        return;
+      }
+
+      const leaveData = {
+        empCode: currentEmpData.empCode,
+        empName: currentEmpData.empName,
+        leaveType: leaveType,
+        startDate: startDate,
+        startTimeSlot: leaveType === 'มาสาย' ? '-' : startTimeSlot,
+        endDate: leaveType === 'มาสาย' ? startDate : endDate,
+        endTimeSlot: leaveType === 'มาสาย' ? '-' : endTimeSlot,
+        reason: reason.trim()
+      };
+
+      fetch(WEB_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'submitLeave', leaveData: leaveData })
+      })
+      .then(response => response.json())
+      .then(response => {
+        if (response.success) {
+          Swal.fire({
+            icon: 'success',
+            title: 'บันทึกข้อมูลสำเร็จ',
+            text: leaveType === 'มาสาย' ? '🎉 แจ้งเข้างานสายสำเร็จ!' : '🎉 ยื่นใบลาสำเร็จ! เรียบร้อยแล้ว',
+            confirmButtonColor: '#06C755'
+          }).then(() => {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            document.getElementById('reason').value = '';
+          });
+        } else if (response.error) {
+          Swal.fire({ icon: 'error', title: 'คำเตือน', text: response.error, confirmButtonColor: '#06C755' });
+        }
+      })
+      .catch(err => {
+        Swal.fire({ icon: 'error', title: 'ส่งข้อมูลไม่สำเร็จ', text: 'ระบบเครือข่ายขัดข้อง: ' + err.toString(), confirmButtonColor: '#06C755' });
+      });
+    }
+  </script>
+</body>
+</html>
