@@ -194,9 +194,9 @@
       if (!currentEmpData) return;
 
       const leaveType = document.getElementById('leaveType').value;
-      const startDate = document.getElementById('startDate').value;
+      const startDate = document.getElementById('startDate').value; // ค่าจะเป็น "2026-07-21"
       const startTimeSlot = document.getElementById('startTimeSlot').value;
-      const endDate = document.getElementById('endDate').value;
+      const endDate = document.getElementById('endDate').value;     // ค่าจะเป็น "2026-07-21"
       const endTimeSlot = document.getElementById('endTimeSlot').value;
       const reason = document.getElementById('reason').value;
 
@@ -207,6 +207,7 @@
         return;
       }
 
+      // ส่งค่า ISO "YYYY-MM-DD" ไปหา Backend เสมอ
       const leaveData = {
         empCode: currentEmpData.empCode,
         empName: currentEmpData.empName,
