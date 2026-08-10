@@ -207,17 +207,13 @@
         return;
       }
 
-      // แปลงฟอร์แมตวันที่เป็น พ.ศ. ภาษาไทยเพื่อส่งไปประมวลผล
-      const formattedStartDate = formatDateThai(startDate);
-      const formattedEndDate = leaveType === 'มาสาย' ? formattedStartDate : formatDateThai(endDate);
-
       const leaveData = {
         empCode: currentEmpData.empCode,
         empName: currentEmpData.empName,
         leaveType: leaveType,
-        startDate: formattedStartDate,
+        startDate: startDate,
         startTimeSlot: leaveType === 'มาสาย' ? '-' : startTimeSlot,
-        endDate: formattedEndDate,
+        endDate: leaveType === 'มาสาย' ? startDate : endDate,
         endTimeSlot: leaveType === 'มาสาย' ? '-' : endTimeSlot,
         reason: reason.trim()
       };
@@ -229,6 +225,9 @@
       .then(response => response.json())
       .then(response => {
         if (response.success) {
+          const formattedStartDate = formatDateThai(startDate);
+          const formattedEndDate = leaveType === 'มาสาย' ? formattedStartDate : formatDateThai(endDate);
+          
           Swal.fire({
             icon: 'success',
             title: 'บันทึกข้อมูลสำเร็จ',
