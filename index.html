@@ -8,18 +8,21 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 0; margin: 0; background-color: #ffffff; color: #333333; }
-    .container { width: 100%; max-width: 100%; margin: 0; padding: 20px; box-sizing: border-box; }
+    .container { width: 100%; max-width: 100%; margin: 0; padding: 20px; box-sizing: border-box; position: relative; }
+    .version-tag { position: absolute; top: 15px; right: 20px; font-size: 11px; color: #b0b0b0; font-family: monospace; }
     h3 { font-size: 22px; margin-top: 10px; margin-bottom: 5px; color: #111111; }
     .emp-info { font-size: 15px; color: #666666; margin-bottom: 25px; }
     label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 8px; font-size: 14px; }
     input, select, textarea { width: 100%; padding: 12px; margin-bottom: 5px; border: 1px solid #cccccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; background-color: #f8f9fa; appearance: none; -webkit-appearance: none; -moz-appearance: none; }
     input:focus, select:focus, textarea:focus { outline: none; border-color: #06C755; background-color: #ffffff; }
     .btn { background-color: #06C755; color: white; border: none; padding: 16px; font-size: 16px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 25px; box-shadow: 0 2px 4px rgba(6, 199, 85, 0.2); }
+    .btn:disabled { background-color: #a0aec0; cursor: not-allowed; box-shadow: none; }
     #quota-display { background: #EBF8FF; color: #2B6CB0; padding: 12px; margin-top: 10px; margin-bottom: 10px; font-weight: bold; border-radius: 6px; font-size: 14px; }
     #loading { font-size: 16px; font-weight: bold; text-align: center; margin-top: 100px; color: #666666; }
   </style>
 </head>
 <body>
+  <div class="version-tag">v1.00</div>
   <div id="loading">⏳ กำลังตรวจสอบและโหลดข้อมูลพนักงาน...</div>
 
   <div id="app" class="container" style="display: none;">
@@ -70,7 +73,6 @@
   </div>
 
   <script>
-    // URL Deployment ของ Google Apps Script
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyv3UumhkglrhNEAEK0K4gvXEUW26xc6h5frqguNcj00ZyxcbeVa6vi0CFqv9hlPSQpZQ/exec";
     const LIFF_ID = "2010534223-ihZKH5vA";
     let currentEmpData = null;
@@ -85,7 +87,6 @@
           const profile = await liff.getProfile();
           lineUserId = profile.userId;
         } else {
-          // สั่งล็อกอิน (บนโฮสต์ภายนอกจะล็อกอินสำเร็จ ไม่ติด iframe ของ Google)
           liff.login();
           return;
         }
@@ -172,7 +173,6 @@
       }
     }
 
-    // ฟังก์ชันแปลงวันที่ yyyy-MM-dd เป็น DD ก.ค. 2569
     function formatDateThai(dateStr) {
       if (!dateStr || dateStr === '-') return dateStr;
       const parts = dateStr.split('-');
@@ -192,14 +192,14 @@
 
     function submitForm() {
       if (!currentEmpData) return;
-    
+
       const leaveType = document.getElementById('leaveType').value;
       const startDate = document.getElementById('startDate').value;
       const startTimeSlot = document.getElementById('startTimeSlot').value;
       const endDate = document.getElementById('endDate').value;
       const endTimeSlot = document.getElementById('endTimeSlot').value;
       const reason = document.getElementById('reason').value;
-    
+
       if (!startDate) { 
         Swal.fire({ icon: 'warning', title: 'คำเตือน', text: 'กรุณาระบุวันที่เริ่มต้น', confirmButtonColor: '#06C755' }); 
         return; 
@@ -212,12 +212,11 @@
         Swal.fire({ icon: 'warning', title: 'คำเตือน', text: leaveType === 'ลาป่วย' ? 'กรุณาระบุสาเหตุการลา' : 'กรุณาระบุเวลาที่คาดว่าจะมาถึงบริษัท', confirmButtonColor: '#06C755' });
         return;
       }
-    
-      // ปิดปุ่มและแสดง Loading เพื่อป้องกันการกดซ้ำ
+
       const submitBtn = document.getElementById('submitBtn');
       submitBtn.disabled = true;
       submitBtn.innerText = 'กำลังส่งข้อมูล...';
-    
+
       Swal.fire({
         title: 'กำลังประมวลผล',
         text: 'ระบบกำลังบันทึกข้อมูลใบลา กรุณารอสักครู่...',
@@ -228,7 +227,7 @@
           Swal.showLoading();
         }
       });
-    
+
       const leaveData = {
         empCode: currentEmpData.empCode,
         empName: currentEmpData.empName,
@@ -239,7 +238,7 @@
         endTimeSlot: leaveType === 'มาสาย' ? '-' : endTimeSlot,
         reason: reason.trim()
       };
-    
+
       fetch(WEB_APP_URL, {
         method: 'POST',
         body: JSON.stringify({ action: 'submitLeave', leaveData: leaveData })
