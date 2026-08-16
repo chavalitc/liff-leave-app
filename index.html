@@ -192,22 +192,43 @@
 
     function submitForm() {
       if (!currentEmpData) return;
-
+    
       const leaveType = document.getElementById('leaveType').value;
-      const startDate = document.getElementById('startDate').value; // ค่าจะเป็น "2026-07-21"
+      const startDate = document.getElementById('startDate').value;
       const startTimeSlot = document.getElementById('startTimeSlot').value;
-      const endDate = document.getElementById('endDate').value;     // ค่าจะเป็น "2026-07-21"
+      const endDate = document.getElementById('endDate').value;
       const endTimeSlot = document.getElementById('endTimeSlot').value;
       const reason = document.getElementById('reason').value;
-
-      if (!startDate) { Swal.fire({ icon: 'warning', title: 'คำเตือน', text: 'กรุณาระบุวันที่เริ่มต้น', confirmButtonColor: '#06C755' }); return; }
-      if (leaveType !== 'มาสาย' && !endDate) { Swal.fire({ icon: 'warning', title: 'คำเตือน', text: 'กรุณาระบุวันที่สิ้นสุด', confirmButtonColor: '#06C755' }); return; }
+    
+      if (!startDate) { 
+        Swal.fire({ icon: 'warning', title: 'คำเตือน', text: 'กรุณาระบุวันที่เริ่มต้น', confirmButtonColor: '#06C755' }); 
+        return; 
+      }
+      if (leaveType !== 'มาสาย' && !endDate) { 
+        Swal.fire({ icon: 'warning', title: 'คำเตือน', text: 'กรุณาระบุวันที่สิ้นสุด', confirmButtonColor: '#06C755' }); 
+        return; 
+      }
       if ((leaveType === 'ลาป่วย' || leaveType === 'มาสาย') && !reason.trim()) {
         Swal.fire({ icon: 'warning', title: 'คำเตือน', text: leaveType === 'ลาป่วย' ? 'กรุณาระบุสาเหตุการลา' : 'กรุณาระบุเวลาที่คาดว่าจะมาถึงบริษัท', confirmButtonColor: '#06C755' });
         return;
       }
-
-      // ส่งค่า ISO "YYYY-MM-DD" ไปหา Backend เสมอ
+    
+      // ปิดปุ่มและแสดง Loading เพื่อป้องกันการกดซ้ำ
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'กำลังส่งข้อมูล...';
+    
+      Swal.fire({
+        title: 'กำลังประมวลผล',
+        text: 'ระบบกำลังบันทึกข้อมูลใบลา กรุณารอสักครู่...',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+    
       const leaveData = {
         empCode: currentEmpData.empCode,
         empName: currentEmpData.empName,
@@ -218,7 +239,7 @@
         endTimeSlot: leaveType === 'มาสาย' ? '-' : endTimeSlot,
         reason: reason.trim()
       };
-
+    
       fetch(WEB_APP_URL, {
         method: 'POST',
         body: JSON.stringify({ action: 'submitLeave', leaveData: leaveData })
@@ -247,6 +268,10 @@
       })
       .catch(err => {
         Swal.fire({ icon: 'error', title: 'ส่งข้อมูลไม่สำเร็จ', text: 'ระบบเครือข่ายขัดข้อง: ' + err.toString(), confirmButtonColor: '#06C755' });
+      })
+      .finally(() => {
+        submitBtn.disabled = false;
+        toggleLeaveFields();
       });
     }
   </script>
