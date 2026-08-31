@@ -1109,6 +1109,10 @@
       const today = new Date();
       const todayIso = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
 
+      if (!selectedDateStr) {
+        selectedDateStr = todayIso;
+      }
+
       // Empty padding cells for starting day
       for (let i = 0; i < firstDayOfMonth; i++) {
         const emptyCell = document.createElement('div');
@@ -1129,16 +1133,17 @@
         const dayHoliday = (calendarData.holidays || []).find(h => sanitizeThaiDateStr(h.date) === dateThai);
 
         const cell = document.createElement('div');
+        cell.id = 'cell-' + dateIso;
         const isToday = dateIso === todayIso;
         const isSelected = dateIso === selectedDateStr;
 
         let cellClasses = 'cal-day-cell border border-slate-100 rounded-lg p-1 text-center cursor-pointer hover:bg-slate-50 flex flex-col justify-between';
         if (isToday) cellClasses += ' today bg-teal-50/70 border-teal-300';
-        if (isSelected) cellClasses += ' selected border-teal-600 bg-teal-50';
+        if (isSelected) cellClasses += ' selected border-teal-600 bg-teal-50 font-bold';
         if (dayHoliday) cellClasses += ' bg-rose-50/50';
 
         cell.className = cellClasses;
-        cell.onclick = () => selectCalendarDay(dateIso, dateThai, dayLeaves, dayHoliday);
+        cell.onclick = () => selectCalendarDay(dateIso, dateThai);
 
         // Day number & dots
         let dotsHtml = '<div class="flex items-center justify-center gap-0.5 mt-0.5">';
@@ -1160,20 +1165,35 @@
         grid.appendChild(cell);
       }
 
-      // If no day is selected yet, select today by default
-      if (!selectedDateStr) {
-        const todayDayStr = String(today.getDate()).padStart(2, '0');
-        const todayMonthStr = String(today.getMonth() + 1).padStart(2, '0');
-        const todayThai = todayDayStr + '/' + todayMonthStr + '/' + (today.getFullYear() + 543);
-        const dayLeaves = (calendarData.events || []).filter(ev => isDateInRange(todayIso, ev.startDate, ev.endDate));
-        const dayHoliday = (calendarData.holidays || []).find(h => sanitizeThaiDateStr(h.date) === todayThai);
-        selectCalendarDay(todayIso, todayThai, dayLeaves, dayHoliday);
+      // Re-trigger dynamic day selection
+      const parts = selectedDateStr.split('-');
+      let selectedDateThai = '';
+      if (parts.length === 3) {
+        let selY = parseInt(parts[0], 10);
+        if (selY < 2400) selY += 543;
+        selectedDateThai = parts[2] + '/' + parts[1] + '/' + selY;
       }
+      selectCalendarDay(selectedDateStr, selectedDateThai);
     }
 
-    function selectCalendarDay(dateIso, dateThai, dayLeaves, dayHoliday) {
+    function selectCalendarDay(dateIso, dateThai) {
       selectedDateStr = dateIso;
-      document.getElementById('selectedDateTitle').textContent = 'รายการวันที่ ' + sanitizeThaiDateStr(dateThai);
+      
+      let targetThai = dateThai;
+      if (!targetThai && dateIso) {
+        const parts = dateIso.split('-');
+        if (parts.length === 3) {
+          let y = parseInt(parts[0], 10);
+          if (y < 2400) y += 543;
+          targetThai = parts[2] + '/' + parts[1] + '/' + y;
+        }
+      }
+      targetThai = sanitizeThaiDateStr(targetThai);
+      document.getElementById('selectedDateTitle').textContent = 'รายการวันที่ ' + targetThai;
+
+      // Always filter dynamically from calendarData
+      const dayLeaves = (calendarData.events || []).filter(ev => isDateInRange(dateIso, ev.startDate, ev.endDate));
+      const dayHoliday = (calendarData.holidays || []).find(h => sanitizeThaiDateStr(h.date) === targetThai);
 
       const container = document.getElementById('selectedDayEventsList');
       const badge = document.getElementById('selectedDateCountBadge');
@@ -1183,35 +1203,41 @@
 
       if (totalCount === 0) {
         container.innerHTML = '<div class="text-gray-400 text-center py-2 text-xs">ไม่มีรายการลาหรือวันหยุดในวันนี้</div>';
-        return;
+      } else {
+        let html = '';
+        if (dayHoliday) {
+          html += '<div class="bg-rose-50 border border-rose-200 rounded-lg p-2 text-xs flex items-center justify-between">' +
+            '<span class="font-bold text-rose-800"><i class="fa-solid fa-flag mr-1"></i> ' + dayHoliday.name + '</span>' +
+            '<span class="text-[10px] bg-rose-200 text-rose-800 px-1.5 py-0.5 rounded font-bold">วันหยุดบริษัท</span>' +
+          '</div>';
+        }
+
+        (dayLeaves || []).forEach(ev => {
+          const badgeBg = ev.leaveType === 'ลาพักร้อน' ? 'bg-teal-100 text-teal-800' : (ev.leaveType === 'ลากิจ' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800');
+          const cleanStart = sanitizeThaiDateStr(ev.startDate);
+          const cleanEnd = sanitizeThaiDateStr(ev.endDate);
+          html += '<div class="bg-white border border-slate-200 rounded-lg p-2.5 shadow-xs space-y-1">' +
+            '<div class="flex items-center justify-between">' +
+              '<span class="font-bold text-gray-800 text-xs sm:text-sm"><i class="fa-solid fa-user text-gray-400 mr-1"></i> ' + formatPersonName(ev.employeeName) + '</span>' +
+              '<span class="text-[10px] px-2 py-0.5 rounded-full font-bold ' + badgeBg + '">' + ev.leaveType + ' (' + ev.days + ' วัน)</span>' +
+            '</div>' +
+            '<div class="text-xs text-gray-500">' + cleanStart + (cleanStart !== cleanEnd ? ' ถึง ' + cleanEnd : '') + '</div>' +
+            (ev.reason ? '<div class="text-xs text-gray-600 bg-slate-50 p-1.5 rounded border border-slate-100">' + ev.reason + '</div>' : '') +
+          '</div>';
+        });
+
+        container.innerHTML = html;
       }
 
-      let html = '';
-      if (dayHoliday) {
-        html += '<div class="bg-rose-50 border border-rose-200 rounded-lg p-2 text-xs flex items-center justify-between">' +
-          '<span class="font-bold text-rose-800"><i class="fa-solid fa-flag mr-1"></i> ' + dayHoliday.name + '</span>' +
-          '<span class="text-[10px] bg-rose-200 text-rose-800 px-1.5 py-0.5 rounded font-bold">วันหยุดบริษัท</span>' +
-        '</div>';
-      }
-
-      (dayLeaves || []).forEach(ev => {
-        const badgeBg = ev.leaveType === 'ลาพักร้อน' ? 'bg-teal-100 text-teal-800' : (ev.leaveType === 'ลากิจ' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800');
-        const cleanStart = sanitizeThaiDateStr(ev.startDate);
-        const cleanEnd = sanitizeThaiDateStr(ev.endDate);
-        html += '<div class="bg-white border border-slate-200 rounded-lg p-2 shadow-xs space-y-1">' +
-          '<div class="flex items-center justify-between">' +
-            '<span class="font-bold text-gray-800"><i class="fa-solid fa-user text-gray-400 mr-1"></i> ' + formatPersonName(ev.employeeName) + '</span>' +
-            '<span class="text-[10px] px-2 py-0.5 rounded-full font-bold ' + badgeBg + '">' + ev.leaveType + ' (' + ev.days + ' วัน)</span>' +
-          '</div>' +
-          '<div class="text-[11px] text-gray-500">' + cleanStart + (cleanStart !== cleanEnd ? ' ถึง ' + cleanEnd : '') + '</div>' +
-          (ev.reason ? '<div class="text-[11px] text-gray-600 bg-slate-50 p-1 rounded">' + ev.reason + '</div>' : '') +
-        '</div>';
-      });
-
-      container.innerHTML = html;
-
+      // Update selected class on cells
       const cells = document.querySelectorAll('.cal-day-cell');
-      cells.forEach(c => c.classList.remove('selected'));
+      cells.forEach(c => {
+        if (c.id === 'cell-' + dateIso) {
+          c.classList.add('selected');
+        } else {
+          c.classList.remove('selected');
+        }
+      });
     }
 
     function renderUpcomingEvents() {
