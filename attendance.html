@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crystal Spa - ระบบลงเวลาปฏิบัติงาน</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts Sarabun -->
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Official LINE LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body { font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif; }
+    .pulse-btn {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .9; transform: scale(0.98); }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-3 sm:p-4">
+
+  <div class="bg-white max-w-md w-full rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+    
+    <!-- Top Header -->
+    <div class="bg-gradient-to-r from-teal-700 via-teal-600 to-emerald-600 p-6 text-white text-center relative">
+      <div class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-2 shadow-inner border border-white/30">
+        <i class="fa-solid fa-spa text-white text-3xl"></i>
+      </div>
+      <h1 class="text-xl sm:text-2xl font-bold tracking-wide">Crystal Spa</h1>
+      <p class="text-teal-100 text-xs sm:text-sm mt-0.5">ระบบบันทึกเวลาปฏิบัติงานพนักงาน</p>
+      
+      <!-- Date Badge -->
+      <div class="mt-3 inline-flex items-center gap-1.5 bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium border border-white/10">
+        <i class="fa-regular fa-calendar text-teal-200"></i>
+        <span id="displayDate">กำลังโหลดวันที่...</span>
+      </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="p-5 sm:p-6 space-y-5">
+      
+      <!-- 1. Loading State -->
+      <div id="loadingBox" class="text-center py-8">
+        <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-teal-500 border-t-transparent mb-3"></div>
+        <p id="loadingText" class="text-gray-500 text-sm font-medium">⏳ กำลังเชื่อมต่อ LINE และโหลดข้อมูล...</p>
+      </div>
+
+      <!-- 2. Error State -->
+      <div id="errorBox" class="hidden bg-rose-50 border border-rose-200 rounded-xl p-4 text-center">
+        <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-2 text-xl">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <h3 class="font-bold text-rose-800 text-base" id="errorTitle">เกิดข้อผิดพลาด</h3>
+        <p class="text-rose-700 text-xs mt-1" id="errorMessage">ไม่สามารถโหลดข้อมูลได้</p>
+        <button onclick="location.reload()" class="mt-3 text-xs bg-rose-600 hover:bg-rose-700 text-white font-semibold px-3 py-1.5 rounded-lg">
+          <i class="fa-solid fa-rotate-right mr-1"></i> ลองใหม่อีกครั้ง
+        </button>
+      </div>
+
+      <!-- 3. Unregistered Warning -->
+      <div id="unregisteredBox" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+        <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-2 text-xl">
+          <i class="fa-solid fa-user-xmark"></i>
+        </div>
+        <h3 class="font-bold text-amber-800 text-base">ไม่พบข้อมูลพนักงาน</h3>
+        <p class="text-amber-700 text-xs mt-1">กรุณาพิมพ์ "ชื่อ นามสกุล" ของคุณส่งในแชท LINE Official Account เพื่อลงทะเบียนก่อนใช้งานระบบลงเวลา</p>
+      </div>
+
+      <!-- 4. Main User & Attendance Card -->
+      <div id="contentBox" class="hidden space-y-5">
+        
+        <!-- Employee Profile Card -->
+        <div class="flex items-center gap-3.5 bg-slate-50 border border-slate-200/80 p-3.5 rounded-xl">
+          <img id="userAvatar" src="https://via.placeholder.com/60" alt="Avatar" class="w-12 h-12 rounded-full object-cover border-2 border-teal-500 shadow-sm">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span id="empName" class="font-bold text-gray-800 text-sm sm:text-base truncate">กำลังโหลดชื่อ...</span>
+              <span id="empNickname" class="text-xs bg-teal-100 text-teal-700 font-semibold px-2 py-0.5 rounded-md hidden">เล่น</span>
+            </div>
+            <div class="text-xs text-gray-500 mt-0.5 flex flex-wrap gap-x-2">
+              <span>รหัส: <strong id="empId" class="text-gray-700">-</strong></span>
+              <span>แผนก: <strong id="empDept" class="text-gray-700">-</strong></span>
+            </div>
+            <div class="text-xs text-gray-500 mt-0.5">
+              <span>รอบเวลา: <strong id="empShift" class="text-teal-700">-</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Today Attendance Summary Card -->
+        <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3">
+          <div class="flex items-center justify-between border-b border-gray-100 pb-2">
+            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">บันทึกเวลาประจำวัน</span>
+            <span id="statusBadge" class="text-xs font-bold px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
+              กำลังตรวจสอบข้อมูล...
+            </span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 pt-1">
+            <div class="bg-emerald-50/60 border border-emerald-100 rounded-lg p-2.5 text-center">
+              <span class="text-xs text-emerald-700 font-medium block">
+                <i class="fa-solid fa-arrow-right-to-bracket mr-1"></i> เวลาเข้างาน
+              </span>
+              <span id="checkInTimeDisplay" class="text-base sm:text-lg font-bold text-emerald-800 mt-1 block">-</span>
+            </div>
+            <div class="bg-rose-50/60 border border-rose-100 rounded-lg p-2.5 text-center">
+              <span class="text-xs text-rose-700 font-medium block">
+                <i class="fa-solid fa-arrow-right-from-bracket mr-1"></i> เวลาออกงาน
+              </span>
+              <span id="checkOutTimeDisplay" class="text-base sm:text-lg font-bold text-rose-800 mt-1 block">-</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- GPS Information Indicator -->
+        <div class="bg-sky-50 border border-sky-100 rounded-xl p-3 flex items-start gap-2.5">
+          <i class="fa-solid fa-location-dot text-sky-600 text-lg mt-0.5"></i>
+          <div class="text-xs text-sky-800 flex-1">
+            <p class="font-semibold">ระบบตรวจจับพิกัด GPS อัตโนมัติ</p>
+            <p class="text-sky-600 mt-0.5">เมื่อกดปุ่ม ระบบจะขอตำแหน่งที่ตั้งเพื่อตรวจสอบระยะห่างจากออฟฟิศ</p>
+          </div>
+        </div>
+
+        <!-- Action Button (Single Button) -->
+        <div>
+          <button id="actionBtn" onclick="handleAttendanceAction()" disabled
+            class="w-full py-3.5 px-4 rounded-xl text-white font-bold text-base shadow-lg transition-all flex items-center justify-center gap-2 bg-gray-300 cursor-not-allowed">
+            <i id="btnIcon" class="fa-solid fa-circle-notch fa-spin text-lg"></i>
+            <span id="btnText">กำลังโหลดข้อมูล...</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Footer Info -->
+      <div class="pt-2 text-center text-xs text-gray-400 space-y-1">
+        <p><i class="fa-solid fa-shield-halved mr-1"></i> ข้อมูลพิกัดและเวลาบันทึกด้วยความปลอดภัย</p>
+        <p class="text-[11px] text-gray-400">Crystal Spa Attendance System</p>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // Configuration
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxMzhXh6glo_mzmiXD5wTYjZf77AdcGb51xZ6CrwCPKKDYiSBYeZR-yn3cH_Ie6mca1/exec";
+    const DEFAULT_LIFF_ID = "2010534223-ihZKH5vA";
+
+    let currentLineUserId = "";
+    let currentAttendanceState = null;
+
+    async function initializeApp() {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const liffId = urlParams.get('liffId') || DEFAULT_LIFF_ID;
+
+        if (typeof liff !== 'undefined' && liffId) {
+          await liff.init({ liffId: liffId });
+          
+          if (liff.isLoggedIn()) {
+            const profile = await liff.getProfile();
+            currentLineUserId = profile.userId;
+            if (profile.pictureUrl) {
+              document.getElementById('userAvatar').src = profile.pictureUrl;
+            }
+            document.getElementById('empName').textContent = profile.displayName;
+          } else {
+            liff.login();
+            return;
+          }
+        } else {
+          currentLineUserId = urlParams.get('userId') || 'Ue84361b22f70ce9b929304e72fa29edc';
+        }
+
+        callBackendStatus(currentLineUserId);
+
+      } catch (err) {
+        console.warn("LIFF Error:", err);
+        const urlParams = new URLSearchParams(window.location.search);
+        currentLineUserId = urlParams.get('userId') || 'Ue84361b22f70ce9b929304e72fa29edc';
+        callBackendStatus(currentLineUserId);
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeApp);
+    } else {
+      initializeApp();
+    }
+
+    function callBackendStatus(lineUserId) {
+      fetch(WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'get_today_status', lineUserId: lineUserId })
+      })
+      .then(response => response.json())
+      .then(result => {
+        document.getElementById('loadingBox').classList.add('hidden');
+        if (result && result.error) {
+          showError('ไม่สามารถโหลดข้อมูลได้', result.error);
+          return;
+        }
+        renderAttendanceUI(result);
+      })
+      .catch(err => {
+        document.getElementById('loadingBox').classList.add('hidden');
+        showError('การเชื่อมต่อล้มเหลว', 'ระบบเครือข่ายขัดข้อง: ' + err.toString());
+      });
+    }
+
+    function showError(title, message) {
+      document.getElementById('contentBox').classList.add('hidden');
+      document.getElementById('unregisteredBox').classList.add('hidden');
+      document.getElementById('errorBox').classList.remove('hidden');
+      document.getElementById('errorTitle').textContent = title;
+      document.getElementById('errorMessage').textContent = message;
+    }
+
+    function renderAttendanceUI(state) {
+      currentAttendanceState = state;
+
+      if (!state || !state.registered) {
+        document.getElementById('contentBox').classList.add('hidden');
+        document.getElementById('unregisteredBox').classList.remove('hidden');
+        document.getElementById('displayDate').textContent = (state && state.todayDate) || 'วันนี้';
+        return;
+      }
+
+      document.getElementById('contentBox').classList.remove('hidden');
+      document.getElementById('displayDate').textContent = state.todayDate;
+
+      // ข้อมูลพนักงาน
+      const emp = state.employee;
+      document.getElementById('empName').textContent = emp.name;
+      if (emp.nickname) {
+        const nickEl = document.getElementById('empNickname');
+        nickEl.textContent = emp.nickname;
+        nickEl.classList.remove('hidden');
+      }
+      document.getElementById('empId').textContent = emp.empId || '-';
+      document.getElementById('empDept').textContent = emp.department || '-';
+      document.getElementById('empShift').textContent = emp.workShift || 'ปกติ';
+
+      // เวลาเข้า - ออก
+      document.getElementById('checkInTimeDisplay').textContent = state.checkInTime ? state.checkInTime + ' น.' : '-';
+      document.getElementById('checkOutTimeDisplay').textContent = state.checkOutTime ? state.checkOutTime + ' น.' : '-';
+
+      // ปุ่ม Action และ Badge ตามสถานะ
+      const actionBtn = document.getElementById('actionBtn');
+      const btnIcon = document.getElementById('btnIcon');
+      const btnText = document.getElementById('btnText');
+      const statusBadge = document.getElementById('statusBadge');
+
+      if (state.nextAction === 'CHECK_IN') {
+        // สถานะ: รอเข้างาน
+        statusBadge.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700';
+        statusBadge.textContent = 'ยังไม่ได้ลงเวลาเข้างาน';
+
+        actionBtn.className = 'w-full py-3.5 px-4 rounded-xl text-white font-bold text-base shadow-lg transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-emerald-200 cursor-pointer pulse-btn';
+        actionBtn.disabled = false;
+        btnIcon.className = 'fa-solid fa-arrow-right-to-bracket text-lg';
+        btnText.textContent = 'บันทึกเวลาเข้างาน (Check-In)';
+
+      } else if (state.nextAction === 'CHECK_OUT') {
+        // สถานะ: เข้างานแล้ว รอออกงาน
+        statusBadge.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700';
+        statusBadge.textContent = 'เข้างานแล้ว: ' + state.checkInTime + ' น.';
+
+        actionBtn.className = 'w-full py-3.5 px-4 rounded-xl text-white font-bold text-base shadow-lg transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-700 hover:to-orange-700 shadow-rose-200 cursor-pointer pulse-btn';
+        actionBtn.disabled = false;
+        btnIcon.className = 'fa-solid fa-arrow-right-from-bracket text-lg';
+        btnText.textContent = 'บันทึกเวลาออกงาน (Check-Out)';
+
+      } else {
+        // สถานะ: ลงเวลาครบแล้ว
+        statusBadge.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700';
+        statusBadge.textContent = 'ลงเวลาปฏิบัติงานครบถ้วนแล้ว';
+
+        actionBtn.className = 'w-full py-3.5 px-4 rounded-xl text-gray-400 font-bold text-base bg-gray-100 border border-gray-200 flex items-center justify-center gap-2 cursor-not-allowed';
+        actionBtn.disabled = true;
+        btnIcon.className = 'fa-solid fa-circle-check text-lg text-emerald-500';
+        btnText.textContent = 'ลงเวลาครบแล้วสำหรับวันนี้';
+      }
+    }
+
+    function handleAttendanceAction() {
+      if (!currentAttendanceState || currentAttendanceState.nextAction === 'COMPLETED') return;
+
+      Swal.fire({
+        title: 'กำลังดึงพิกัด GPS...',
+        text: 'กรุณากดยอมรับ (Allow) หากอุปกรณ์ขอเข้าถึงตำแหน่งที่ตั้ง',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => sendAttendanceRecord(pos.coords.latitude, pos.coords.longitude),
+          (err) => showGpsError(err),
+          { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+        );
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'ไม่รองรับ GPS',
+          text: 'อุปกรณ์หรือเบราว์เซอร์นี้ไม่รองรับการดึงพิกัด Geolocation'
+        });
+      }
+    }
+
+    function sendAttendanceRecord(lat, lng) {
+      Swal.fire({
+        title: 'กำลังบันทึกเวลา...',
+        text: 'กำลังส่งข้อมูลไปยังฐานข้อมูล Crystal Spa',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      const payload = {
+        action: 'record_attendance',
+        lineUserId: currentLineUserId,
+        lat: lat,
+        lng: lng,
+        note: ''
+      };
+
+      fetch(WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result && result.success) {
+          const iconType = result.isRemote ? 'warning' : 'success';
+          const titleText = result.action === 'CHECK_IN' ? '🎉 บันทึกเวลาเข้างานสำเร็จ!' : '🎉 บันทึกเวลาออกงานสำเร็จ!';
+          
+          let detailHtml = `
+            <div class="text-sm space-y-2 text-left bg-slate-50 p-3 rounded-lg border border-slate-200 mt-2">
+              <div>⏰ <strong>เวลาที่บันทึก:</strong> ${result.time} น.</div>
+              <div>📍 <strong>ตำแหน่ง:</strong> ${result.isRemote ? `<span class="text-rose-600 font-bold">นอกพื้นที่ออฟฟิศ (ห่าง ${result.distance} เมตร)</span>` : '<span class="text-emerald-600 font-bold">ในพื้นที่ออฟฟิศ</span>'}</div>
+            </div>
+          `;
+
+          Swal.fire({
+            icon: iconType,
+            title: titleText,
+            html: detailHtml,
+            confirmButtonColor: '#0f766e',
+            confirmButtonText: 'ตกลง'
+          }).then(() => {
+            callBackendStatus(currentLineUserId);
+          });
+
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'ไม่สามารถบันทึกได้',
+            text: (result && result.message) || 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ'
+          });
+        }
+      })
+      .catch(err => {
+        Swal.fire({ icon: 'error', title: 'การเชื่อมต่อล้มเหลว', text: 'ระบบเครือข่ายขัดข้อง: ' + err.toString() });
+      });
+    }
+
+    function showGpsError(err) {
+      let msg = 'ไม่สามารถระบุพิกัด GPS ได้';
+      if (err.code === err.PERMISSION_DENIED) {
+        msg = 'คุณปฏิเสธการเข้าถึงตำแหน่งที่ตั้ง (Location Permission) กรุณาเปิดสิทธิ์ระบุตำแหน่งในตั้งค่ามือถือหรือเบราว์เซอร์';
+      } else if (err.code === err.POSITION_UNAVAILABLE) {
+        msg = 'สัญญาณ GPS ขัดข้องหรือไม่พร้อมใช้งาน';
+      } else if (err.code === err.TIMEOUT) {
+        msg = 'หมดเวลาค้นหาพิกัด GPS กรุณาลองใหม่อีกครั้ง';
+      }
+      Swal.fire({ icon: 'error', title: 'GPS ขัดข้อง', text: msg });
+    }
+  </script>
+
+</body>
+</html>
