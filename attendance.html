@@ -239,6 +239,20 @@
       document.getElementById('errorMessage').textContent = message;
     }
 
+        function formatTimeOnly(timeVal) {
+      if (!timeVal || timeVal === '-' || timeVal === 'null' || timeVal === 'undefined') return '-';
+      const str = String(timeVal).trim();
+      const match = str.match(/(\d{1,2}:\d{2}(?::\d{2})?)/);
+      if (match) {
+        const parts = match[1].split(':');
+        const h = parts[0].padStart(2, '0');
+        const m = parts[1].padStart(2, '0');
+        const s = (parts[2] || '00').padStart(2, '0');
+        return `${h}:${m}:${s}`;
+      }
+      return str.replace(/GMT.*/i, '').trim();
+    }
+
     function renderAttendanceUI(state) {
       currentAttendanceState = state;
 
@@ -264,9 +278,11 @@
       document.getElementById('empDept').textContent = emp.department || '-';
       document.getElementById('empShift').textContent = emp.workShift || 'ปกติ';
 
-      // เวลาเข้า - ออก
-      document.getElementById('checkInTimeDisplay').textContent = state.checkInTime ? state.checkInTime + ' น.' : '-';
-      document.getElementById('checkOutTimeDisplay').textContent = state.checkOutTime ? state.checkOutTime + ' น.' : '-';
+      // เวลาเข้า - ออก (ตัด GMT แสดงเฉพาะ hh:mm:ss)
+      const formattedIn = formatTimeOnly(state.checkInTime);
+      const formattedOut = formatTimeOnly(state.checkOutTime);
+      document.getElementById('checkInTimeDisplay').textContent = formattedIn !== '-' ? formattedIn + ' น.' : '-';
+      document.getElementById('checkOutTimeDisplay').textContent = formattedOut !== '-' ? formattedOut + ' น.' : '-';
 
       // ปุ่ม Action และ Badge ตามสถานะ
       const actionBtn = document.getElementById('actionBtn');
@@ -287,7 +303,7 @@
       } else if (state.nextAction === 'CHECK_OUT') {
         // สถานะ: เข้างานแล้ว รอออกงาน
         statusBadge.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700';
-        statusBadge.textContent = 'เข้างานแล้ว: ' + state.checkInTime + ' น.';
+        statusBadge.textContent = 'เข้างานแล้ว: ' + formattedIn + ' น.';
 
         actionBtn.className = 'w-full py-3.5 px-4 rounded-xl text-white font-bold text-base shadow-lg transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-700 hover:to-orange-700 shadow-rose-200 cursor-pointer pulse-btn';
         actionBtn.disabled = false;
@@ -364,7 +380,7 @@
           
           let detailHtml = `
             <div class="text-sm space-y-2 text-left bg-slate-50 p-3 rounded-lg border border-slate-200 mt-2">
-              <div>⏰ <strong>เวลาที่บันทึก:</strong> ${result.time} น.</div>
+              <div>⏰ <strong>เวลาที่บันทึก:</strong> ${formatTimeOnly(result.time)} น.</div>
               <div>📍 <strong>ตำแหน่ง:</strong> ${result.isRemote ? `<span class="text-rose-600 font-bold">นอกพื้นที่ออฟฟิศ (ห่าง ${result.distance} เมตร)</span>` : '<span class="text-emerald-600 font-bold">ในพื้นที่ออฟฟิศ</span>'}</div>
             </div>
           `;
