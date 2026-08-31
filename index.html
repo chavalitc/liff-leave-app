@@ -406,7 +406,7 @@
 
       <!-- Footer Info -->
       <div class="pt-2 text-center text-xs text-gray-400 space-y-1">
-        <p><i class="fa-solid fa-shield-halved mr-1"></i> Crystal Spa Employee Portal</p>
+        <p><i class="fa-solid fa-shield-halved mr-1"></i> Crystal Spa Employee Portal <span class="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-mono">v4.3</span></p>
       </div>
 
     </div>
@@ -442,24 +442,56 @@
       return 'คุณ' + str.trim();
     }
 
-    // Helper: ล้างวันที่ให้เป็น พ.ศ. (DD/MM/YYYY) ที่ถูกต้องเสมอ ป้องกันปี 3112
+    // Helper: ล้างวันที่ให้เป็น พ.ศ. (DD/MM/YYYY) ที่ถูกต้องเสมอ ป้องกันปี 3112 และรองรับ ISO
     function sanitizeThaiDateStr(val) {
       if (!val) return '';
+      if (val instanceof Date) {
+        const d = String(val.getDate()).padStart(2, '0');
+        const m = String(val.getMonth() + 1).padStart(2, '0');
+        let y = val.getFullYear();
+        if (y < 2400) y += 543;
+        return d + '/' + m + '/' + y;
+      }
       const str = String(val).trim();
+      const isoMatch = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (isoMatch) {
+        let y = parseInt(isoMatch[1], 10);
+        const m = isoMatch[2].padStart(2, '0');
+        const d = isoMatch[3].padStart(2, '0');
+        if (y < 2400) y += 543;
+        return d + '/' + m + '/' + y;
+      }
       const parts = str.split('/');
       if (parts.length === 3) {
         const d = parts[0].padStart(2, '0');
         const m = parts[1].padStart(2, '0');
         let y = parseInt(parts[2], 10);
-        while (y > 3000) {
-          y -= 543;
-        }
-        if (y < 2400) {
-          y += 543;
-        }
+        while (y > 3000) y -= 543;
+        if (y < 2400) y += 543;
         return d + '/' + m + '/' + y;
       }
       return str;
+    }
+
+    function parseThaiDateToIso(thaiDateStr) {
+      if (!thaiDateStr) return '';
+      const clean = sanitizeThaiDateStr(thaiDateStr);
+      const parts = clean.split('/');
+      if (parts.length === 3) {
+        const d = parts[0].padStart(2, '0');
+        const m = parts[1].padStart(2, '0');
+        let y = parseInt(parts[2], 10);
+        if (y > 2400) y = y - 543;
+        return y + '-' + m + '-' + d;
+      }
+      return thaiDateStr;
+    }
+
+    function isDateInRange(targetDateStr, startThai, endThai) {
+      const targetIso = parseThaiDateToIso(targetDateStr);
+      const startIso = parseThaiDateToIso(startThai);
+      const endIso = parseThaiDateToIso(endThai);
+      return targetIso >= startIso && targetIso <= endIso;
     }
 
     // 1. Initial Router & LIFF Boot
