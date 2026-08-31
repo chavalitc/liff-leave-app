@@ -72,6 +72,7 @@
         </div>
         <h3 class="font-bold text-amber-800 text-base">ไม่พบข้อมูลพนักงาน</h3>
         <p class="text-amber-700 text-xs mt-1">กรุณาพิมพ์ "ชื่อ นามสกุล" ของคุณส่งในแชท LINE Official Account เพื่อลงทะเบียนก่อนใช้งานระบบลงเวลา</p>
+        <div class="mt-3 text-[11px] text-gray-400 font-mono" id="debugUserId"></div>
       </div>
 
       <!-- 4. Main User & Attendance Card -->
@@ -153,7 +154,7 @@
   <script>
     // Configuration
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxMzhXh6glo_mzmiXD5wTYjZf77AdcGb51xZ6CrwCPKKDYiSBYeZR-yn3cH_Ie6mca1/exec";
-    const DEFAULT_LIFF_ID = "2010534223-ihZKH5vA";
+    const DEFAULT_LIFF_ID = "2011346393-VzVca3ML"; // Real Crystal Spa LIFF ID
 
     let currentLineUserId = "";
     let currentAttendanceState = null;
@@ -178,7 +179,11 @@
             return;
           }
         } else {
-          currentLineUserId = urlParams.get('userId') || 'Ue84361b22f70ce9b929304e72fa29edc';
+          currentLineUserId = urlParams.get('userId') || '';
+        }
+
+        if (!currentLineUserId) {
+          throw new Error('ไม่พบ LINE User ID จากระบบ กรุณาเปิดผ่าน LINE Official Account');
         }
 
         callBackendStatus(currentLineUserId);
@@ -186,8 +191,14 @@
       } catch (err) {
         console.warn("LIFF Error:", err);
         const urlParams = new URLSearchParams(window.location.search);
-        currentLineUserId = urlParams.get('userId') || 'Ue84361b22f70ce9b929304e72fa29edc';
-        callBackendStatus(currentLineUserId);
+        const fallbackId = urlParams.get('userId');
+        if (fallbackId) {
+          currentLineUserId = fallbackId;
+          callBackendStatus(currentLineUserId);
+        } else {
+          document.getElementById('loadingBox').classList.add('hidden');
+          showError('เชื่อมต่อ LINE ไม่สำเร็จ', err.message || err);
+        }
       }
     }
 
@@ -198,6 +209,8 @@
     }
 
     function callBackendStatus(lineUserId) {
+      document.getElementById('debugUserId').textContent = 'User ID: ' + lineUserId;
+      
       fetch(WEB_APP_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
