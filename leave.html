@@ -6,7 +6,7 @@
   <meta http-equiv="Expires" content="0" />
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crystal Spa - ระบบพนักงาน (ลงเวลา & ลางาน)</title>
+  <title>Crystal Spa - ระบบบริการพนักงาน</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SweetAlert2 -->
@@ -43,35 +43,51 @@
     .nav-tab:not(.active) {
       color: #64748b;
     }
+    .cal-day-cell {
+      min-height: 48px;
+      transition: all 0.15s ease;
+    }
+    .cal-day-cell.selected {
+      border-color: #0f766e;
+      background-color: #f0fdfa;
+    }
+    .cal-day-cell.today {
+      font-weight: 800;
+      color: #0f766e;
+    }
   </style>
 </head>
-<body class="bg-slate-100 min-h-screen flex items-center justify-center p-3 sm:p-4">
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-2 sm:p-4">
 
   <div class="bg-white max-w-md w-full rounded-2xl shadow-xl overflow-hidden border border-slate-200">
     
     <!-- Top Header -->
-    <div class="bg-gradient-to-r from-teal-800 via-teal-700 to-emerald-600 p-5 sm:p-6 text-white text-center relative">
-      <div class="flex items-center justify-center mx-auto mb-2">
-        <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAEnAScDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD9TaKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKD0qne6nb6VEZ7u5itLdT80kz7V/M0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GOhCnj+7SeBvh/4b+GnhyPw/4X0S00DR7c5itLBBGik8knHJPueeldNRQB59P8B/AF18Sz4/uPCOlTeMVRUXWpYN06hRtBGeA2O/XpXfxoIwR3JySep+tOooAOCRn5SOjV5d8W/2Z/hh8dHjbxz4P07xBcxLsiuZlZJ0BJJVZEIcDknGcZJ9a9RpG60AeMeFv2P/AIQeDb21u7HwZb3D2zBrZdSup71YSAACiTyMqkY6gZr2JIzGMqo+Udex49O3anNJtOP6/wBKyfFHinS/B+hXes6zfxaXptojSz3dwdkaKoycnufQDknAHWgD8+vHXw90z49/8FX20nxFo9vr3hrw34bjmvLa7j3xf6glQw6f6yZT/wABr7v8AfCjwb8MLN7Lwn4Y0vw/AyhZF061SFpB/tFeT688c14p+yZ8Nby68V+Pfjdr1jLYa38QLtX0+yu12z2WkxjFurr/AAvIAsjr2AUHkV9NLnHIx7+vvQAzyf8AWHavIHB5HGeMfjXmHhv9mP4WeDfGtz4t0bwJo9l4juHMj6otuGl3McllLcKSSeRzXqdFAHD/ABN+Dngr4z6Va6d408OWPiaytbhbm3hvkZljlxjIxyOCfr3rpdA0Sx8PaRa6fplnDp+nwIIoLW3jWOKJAOFVV+UDHpx+Oa06KAEVdox6UtFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABXmn7Qfwqu/jX8NdT8H2vizUPBw1BQs+o6YqmbyQf3ic4O1hgHBr0uigD46+H3/AATtt/DlvFY+J/i98QfGWkRgI+jyas9pauo/hcIxcr14DcjAI9fq7wv4S0rwfolppOiadbaVpdogjgtLSMJFGvoAP59zWvRQAuMUlFFABRRRQAUUUUAFFFFABRRRQAUEZHXbjndRRQBxHxc8F6x8Q/AuqaDoXie48G6hfxeUNYtIRLNEh++EBI2kjjcDkV4Z8GP+Cffgz4Z6nYanr/iTxJ8Sb+wYSWieJr0y2trIDkMlv93OSTl93XivqqigCKGEBTkk4PGfX/P0qUHI5696KKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP/9k=" alt="Crystal Spa Logo" class="h-14 w-auto object-contain rounded-lg shadow-sm">
+    <div class="bg-gradient-to-r from-teal-800 via-teal-700 to-emerald-600 p-4 sm:p-5 text-white text-center relative">
+      <div class="flex items-center justify-center mx-auto mb-1.5">
+        <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAEnAScDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD9TaKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKD0qne6nb6VEZ7u5itLdT80kz7V/M0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GOhCnj+7SeBvh/4b+GnhyPw/4X0S00DR7c5itLBBGik8knHJPueeldNRQB59P8B/AF18Sz4/uPCOlTeMVRUXWpYN06hRtBGeA2O/XpXfxoIwR3JySep+tOooAOCRn5SOjV5d8W/2Z/hh8dHjbxz4P07xBcxLsiuZlZJ0BJJVZEIcDknGcZJ9a9RpG60AeMeFv2P/AIQeDb21u7HwZb3D2zBrZdSup71YSAACiTyMqkY6gZr2JIzGMqo+Udex49O3anNJtOP6/wBKyfFHinS/B+hXes6zfxaXptojSz3dwdkaKoycnufQDknAHWgD8+vHXw90z49/8FX20nxFo9vr3hrw34bjmvLa7j3xf6glQw6f6yZT/wABr7v8AfCjwb8MLN7Lwn4Y0vw/AyhZF061SFpB/tFeT688c14p+yZ8Nby68V+Pfjdr1jLYa38QLtX0+yu12z2WkxjFurr/AAvIAsjr2AUHkV9NLnHIx7+vvQAzyf8AWHavIHB5HGeMfjXmHhv9mP4WeDfGtz4t0bwJo9l4juHMj6otuGl3McllLcKSSeRzXqdFAHD/ABN+Dngr4z6Va6d408OWPiaytbhbm3hvkZljlxjIxyOCfr3rpdA0Sx8PaRa6fplnDp+nwIIoLW3jWOKJAOFVV+UDHpx+Oa06KAEVdox6UtFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABXmn7Qfwqu/jX8NdT8H2vizUPBw1BQs+o6YqmbyQf3ic4O1hgHBr0uigD46+H3/AATtt/DlvFY+J/i98QfGWkRgI+jyas9pauo/hcIxcr14DcjAI9fq7wv4S0rwfolppOiadbaVpdogjgtLSMJFGvoAP59zWvRQAuMUlFFABRRRQAUUUUAFFFFABRRRQAUEZHXbjndRRQBxHxc8F6x8Q/AuqaDoXie48G6hfxeUNYtIRLNEh++EBI2kjjcDkV4Z8GP+Cffgz4Z6nYanr/iTxJ8Sb+wYSWieJr0y2trIDkMlv93OSTl93XivqqigCKGEBTkk4PGfX/P0qUHI5696KKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP/9k=" alt="Crystal Spa Logo" class="h-12 w-auto object-contain rounded-lg shadow-sm">
       </div>
       <h1 class="text-base sm:text-lg font-bold tracking-tight" id="headerTitle">ระบบบริการพนักงาน Crystal Spa</h1>
       
       <!-- Date Badge -->
-      <div class="mt-2.5 inline-flex items-center gap-1.5 bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium border border-white/10">
+      <div class="mt-2 inline-flex items-center gap-1.5 bg-black/20 backdrop-blur-sm px-3 py-0.5 rounded-full text-xs font-medium border border-white/10">
         <i class="fa-regular fa-calendar text-teal-200"></i>
         <span id="displayDate">กำลังโหลดวันที่...</span>
       </div>
     </div>
 
-    <!-- Navigation Tabs (ลงเวลา / ลางาน) -->
-    <div class="flex border-b border-slate-200 bg-slate-100/90 text-xs sm:text-sm">
+    <!-- Navigation Tabs (3 Tabs: ลงเวลา / ลางาน / ปฏิทิน) -->
+    <div class="flex border-b border-slate-200 bg-slate-100/90 text-xs">
       <button id="tabBtnAttendance" onclick="switchTab('attendance')"
-        class="nav-tab active flex-1 py-3 text-center font-medium transition-all flex items-center justify-center gap-1.5">
-        <i class="fa-solid fa-clock"></i> บันทึกเวลาเข้า-ออก
+        class="nav-tab active flex-1 py-2.5 text-center font-medium transition-all flex items-center justify-center gap-1">
+        <i class="fa-solid fa-clock"></i> ลงเวลา
       </button>
       <button id="tabBtnLeave" onclick="switchTab('leave')"
-        class="nav-tab flex-1 py-3 text-center font-medium transition-all flex items-center justify-center gap-1.5">
-        <i class="fa-solid fa-calendar-minus"></i> ยื่นใบลา / สิทธิ์วันลา
+        class="nav-tab flex-1 py-2.5 text-center font-medium transition-all flex items-center justify-center gap-1">
+        <i class="fa-solid fa-calendar-minus"></i> ยื่นใบลา
+      </button>
+      <button id="tabBtnCalendar" onclick="switchTab('calendar')"
+        class="nav-tab flex-1 py-2.5 text-center font-medium transition-all flex items-center justify-center gap-1">
+        <i class="fa-solid fa-calendar-days"></i> ปฏิทินบริษัท
       </button>
     </div>
 
@@ -106,9 +122,9 @@
         <div class="mt-3 text-[11px] text-gray-400 font-mono" id="debugUserId"></div>
       </div>
 
-      <!-- 4. Main Profile Card (Common for both tabs) -->
-      <div id="profileBox" class="hidden flex items-center gap-3.5 bg-slate-50 border border-slate-200/80 p-3.5 rounded-xl">
-        <img id="userAvatar" src="https://via.placeholder.com/60" alt="Avatar" class="w-12 h-12 rounded-full object-cover border-2 border-teal-500 shadow-sm">
+      <!-- 4. Main Profile Card (Common for all tabs) -->
+      <div id="profileBox" class="hidden flex items-center gap-3.5 bg-slate-50 border border-slate-200/80 p-3 rounded-xl">
+        <img id="userAvatar" src="https://via.placeholder.com/60" alt="Avatar" class="w-11 h-11 rounded-full object-cover border-2 border-teal-500 shadow-sm">
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-1.5">
             <span id="empName" class="font-bold text-gray-800 text-sm sm:text-base truncate">กำลังโหลดชื่อ...</span>
@@ -317,9 +333,80 @@
 
       </div>
 
+      <!-- ================= TAB 3: CALENDAR VIEW ================= -->
+      <div id="calendarView" class="hidden space-y-3.5">
+        
+        <!-- Calendar Controls & Month Title -->
+        <div class="bg-white border border-slate-200 rounded-xl p-3 shadow-sm flex items-center justify-between">
+          <button onclick="changeCalendarMonth(-1)" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-teal-100 text-gray-600 hover:text-teal-800 flex items-center justify-center transition-colors">
+            <i class="fa-solid fa-chevron-left text-xs"></i>
+          </button>
+          <div class="text-center">
+            <h2 id="calMonthTitle" class="font-bold text-gray-800 text-sm sm:text-base">กำลังโหลด...</h2>
+            <button onclick="goToCurrentMonth()" class="text-[11px] text-teal-600 hover:underline font-medium">กลับเดือนปัจจุบัน</button>
+          </div>
+          <button onclick="changeCalendarMonth(1)" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-teal-100 text-gray-600 hover:text-teal-800 flex items-center justify-center transition-colors">
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </button>
+        </div>
+
+        <!-- Legend / Indicators -->
+        <div class="flex items-center justify-center gap-3 text-[10px] text-gray-600 flex-wrap bg-slate-50 p-2 rounded-lg border border-slate-100">
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-teal-500"></span> ลาพักร้อน</span>
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span> ลากิจ</span>
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-rose-500"></span> ลาป่วย</span>
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-600"></span> วันหยุด</span>
+        </div>
+
+        <!-- Monthly Calendar Grid -->
+        <div class="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
+          <!-- Day of week header -->
+          <div class="grid grid-cols-7 gap-1 text-center text-[11px] font-bold text-gray-400 mb-1.5 border-b border-gray-100 pb-1.5">
+            <div class="text-rose-500">อา</div>
+            <div>จ</div>
+            <div>อ</div>
+            <div>พ</div>
+            <div>พฤ</div>
+            <div>ศ</div>
+            <div class="text-teal-600">ส</div>
+          </div>
+          <!-- Days container -->
+          <div id="calDaysGrid" class="grid grid-cols-7 gap-1 text-center text-xs">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+
+        <!-- Selected Day Details Card -->
+        <div id="selectedDayCard" class="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm space-y-2">
+          <div class="flex items-center justify-between border-b border-gray-100 pb-1.5">
+            <h3 class="font-bold text-gray-800 text-xs sm:text-sm flex items-center gap-1.5">
+              <i class="fa-solid fa-calendar-check text-teal-600"></i>
+              <span id="selectedDateTitle">รายการวันที่เลือก</span>
+            </h3>
+            <span id="selectedDateCountBadge" class="text-[10px] bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full font-bold">0 รายการ</span>
+          </div>
+          <div id="selectedDayEventsList" class="space-y-1.5 text-xs">
+            <div class="text-gray-400 text-center py-3">แตะเลือกวันที่ในปฏิทินเพื่อดูรายละเอียด</div>
+          </div>
+        </div>
+
+        <!-- Upcoming Leaves & Holidays List -->
+        <div class="space-y-2">
+          <h3 class="font-bold text-gray-800 text-xs sm:text-sm flex items-center gap-1.5">
+            <i class="fa-solid fa-bullhorn text-teal-600"></i> รายการลาและวันหยุดที่จะถึง
+          </h3>
+          <div id="upcomingEventsList" class="space-y-2">
+            <div class="text-center py-4 text-gray-400 text-xs bg-white rounded-xl border border-slate-200">
+              กำลังโหลดรายการ...
+            </div>
+          </div>
+        </div>
+
+      </div>
+
       <!-- Footer Info -->
       <div class="pt-2 text-center text-xs text-gray-400 space-y-1">
-        <p><i class="fa-solid fa-shield-halved mr-1"></i> Crystal Spa Attendance & Leave System</p>
+        <p><i class="fa-solid fa-shield-halved mr-1"></i> Crystal Spa Employee Portal</p>
       </div>
 
     </div>
@@ -334,12 +421,22 @@
     let currentActiveTab = "attendance";
     let currentAttendanceState = null;
     let currentLeaveState = null;
+    let calendarData = { events: [], holidays: [] };
     let selectedLeaveType = "ลาพักร้อน";
+
+    // Calendar state
+    let calCurrentYear = 2026;
+    let calCurrentMonth = 8; // 0-indexed (8 = September)
+    let selectedDateStr = "";
+
+    const thaiMonthNames = [
+      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+      'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+    ];
 
     // 1. Initial Router & LIFF Boot
     async function initializeApp() {
       try {
-        // ตรวจหาค่า page จาก URL หรือ liff.state หรือ hash หรือ full href
         const fullHref = window.location.href;
         const urlParams = new URLSearchParams(window.location.search);
         let targetPage = urlParams.get('page');
@@ -348,25 +445,33 @@
           const stateStr = decodeURIComponent(urlParams.get('liff.state'));
           const match = stateStr.match(/[?&]page=([^&]+)/);
           if (match) targetPage = match[1];
+          else if (stateStr.includes('calendar')) targetPage = 'calendar';
           else if (stateStr.includes('leave')) targetPage = 'leave';
         }
 
         if (!targetPage && window.location.hash) {
-          if (window.location.hash.includes('leave')) targetPage = 'leave';
+          if (window.location.hash.includes('calendar')) targetPage = 'calendar';
+          else if (window.location.hash.includes('leave')) targetPage = 'leave';
         }
 
-        if (!targetPage && (fullHref.includes('page=leave') || fullHref.includes('leave'))) {
-          targetPage = 'leave';
+        if (!targetPage) {
+          if (fullHref.includes('page=calendar') || fullHref.includes('calendar')) targetPage = 'calendar';
+          else if (fullHref.includes('page=leave') || fullHref.includes('leave')) targetPage = 'leave';
         }
 
-        if (targetPage === 'leave') {
+        if (targetPage === 'calendar') {
+          currentActiveTab = 'calendar';
+        } else if (targetPage === 'leave') {
           currentActiveTab = 'leave';
         } else {
           currentActiveTab = 'attendance';
         }
 
-        // ตั้งค่าวันที่เริ่มต้นสำหรับแบบฟอร์มการลา
+        // Set calendar to current system date
         const today = new Date();
+        calCurrentYear = today.getFullYear();
+        calCurrentMonth = today.getMonth();
+
         const yyyy = today.getFullYear();
         const mm = String(today.getMonth() + 1).padStart(2, '0');
         const dd = String(today.getDate()).padStart(2, '0');
@@ -400,7 +505,6 @@
           throw new Error('ไม่พบ LINE User ID กรุณาเปิดผ่าน LINE Official Account');
         }
 
-        // แสดงแท็บที่ถูกต้องทันที
         switchTab(currentActiveTab);
         loadAllData(currentLineUserId);
 
@@ -425,29 +529,40 @@
       initializeApp();
     }
 
-    // 2. Tab Switching Logic
+    // 2. Tab Switching Logic (3 Tabs)
     function switchTab(tabName) {
       currentActiveTab = tabName;
 
       const btnAttendance = document.getElementById('tabBtnAttendance');
       const btnLeave = document.getElementById('tabBtnLeave');
+      const btnCalendar = document.getElementById('tabBtnCalendar');
       const viewAttendance = document.getElementById('attendanceView');
       const viewLeave = document.getElementById('leaveView');
+      const viewCalendar = document.getElementById('calendarView');
       const headerTitle = document.getElementById('headerTitle');
       const shiftRow = document.getElementById('shiftRow');
 
+      const tabs = [btnAttendance, btnLeave, btnCalendar];
+      tabs.forEach(t => t.className = 'nav-tab flex-1 py-2.5 text-center font-medium transition-all flex items-center justify-center gap-1');
+
+      viewAttendance.classList.add('hidden');
+      viewLeave.classList.add('hidden');
+      viewCalendar.classList.add('hidden');
+
       if (tabName === 'leave') {
-        btnAttendance.className = 'nav-tab flex-1 py-3 text-center font-medium transition-all flex items-center justify-center gap-1.5';
-        btnLeave.className = 'nav-tab active flex-1 py-3 text-center font-medium transition-all flex items-center justify-center gap-1.5';
-        viewAttendance.classList.add('hidden');
+        btnLeave.className = 'nav-tab active flex-1 py-2.5 text-center font-medium transition-all flex items-center justify-center gap-1';
         viewLeave.classList.remove('hidden');
         headerTitle.textContent = 'ระบบยื่นใบลาและตรวจสอบวันลา';
         if (shiftRow) shiftRow.classList.add('hidden');
+      } else if (tabName === 'calendar') {
+        btnCalendar.className = 'nav-tab active flex-1 py-2.5 text-center font-medium transition-all flex items-center justify-center gap-1';
+        viewCalendar.classList.remove('hidden');
+        headerTitle.textContent = 'ปฏิทินวันลาและวันหยุด Crystal Spa';
+        if (shiftRow) shiftRow.classList.add('hidden');
+        renderCalendarGrid();
       } else {
-        btnAttendance.className = 'nav-tab active flex-1 py-3 text-center font-medium transition-all flex items-center justify-center gap-1.5';
-        btnLeave.className = 'nav-tab flex-1 py-3 text-center font-medium transition-all flex items-center justify-center gap-1.5';
+        btnAttendance.className = 'nav-tab active flex-1 py-2.5 text-center font-medium transition-all flex items-center justify-center gap-1';
         viewAttendance.classList.remove('hidden');
-        viewLeave.classList.add('hidden');
         headerTitle.textContent = 'ระบบบันทึกเวลาปฏิบัติงานพนักงาน';
         if (shiftRow) shiftRow.classList.remove('hidden');
       }
@@ -467,15 +582,21 @@
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({ action: 'get_leave_info', lineUserId: lineUserId })
-        }).then(r => r.json())
+        }).then(r => r.json()),
+        fetch(WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'get_calendar_events', year: 2569, month: calCurrentMonth + 1 })
+        }).then(r => r.json()).catch(() => ({ events: [], holidays: [] }))
       ])
-      .then(([attResult, leaveResult]) => {
+      .then(([attResult, leaveResult, calResult]) => {
         document.getElementById('loadingBox').classList.add('hidden');
 
         if (!attResult || !attResult.registered) {
           document.getElementById('profileBox').classList.add('hidden');
           document.getElementById('attendanceView').classList.add('hidden');
           document.getElementById('leaveView').classList.add('hidden');
+          document.getElementById('calendarView').classList.add('hidden');
           document.getElementById('unregisteredBox').classList.remove('hidden');
           return;
         }
@@ -485,6 +606,12 @@
         
         renderAttendanceUI(attResult);
         renderLeaveUI(leaveResult);
+        
+        if (calResult) {
+          calendarData = calResult;
+          renderCalendarGrid();
+          renderUpcomingEvents();
+        }
       })
       .catch(err => {
         document.getElementById('loadingBox').classList.add('hidden');
@@ -496,6 +623,7 @@
       document.getElementById('profileBox').classList.add('hidden');
       document.getElementById('attendanceView').classList.add('hidden');
       document.getElementById('leaveView').classList.add('hidden');
+      document.getElementById('calendarView').classList.add('hidden');
       document.getElementById('unregisteredBox').classList.add('hidden');
       document.getElementById('errorBox').classList.remove('hidden');
       document.getElementById('errorTitle').textContent = title;
@@ -895,6 +1023,186 @@
       .catch(err => {
         Swal.fire({ icon: 'error', title: 'การเชื่อมต่อล้มเหลว', text: 'ระบบเครือข่ายขัดข้อง: ' + err.toString() });
       });
+    }
+
+    // ================= 6. Calendar View Logic =================
+    function changeCalendarMonth(delta) {
+      calCurrentMonth += delta;
+      if (calCurrentMonth > 11) {
+        calCurrentMonth = 0;
+        calCurrentYear += 1;
+      } else if (calCurrentMonth < 0) {
+        calCurrentMonth = 11;
+        calCurrentYear -= 1;
+      }
+      renderCalendarGrid();
+    }
+
+    function goToCurrentMonth() {
+      const now = new Date();
+      calCurrentYear = now.getFullYear();
+      calCurrentMonth = now.getMonth();
+      renderCalendarGrid();
+    }
+
+    function parseThaiDateToIso(thaiDateStr) {
+      if (!thaiDateStr) return '';
+      const parts = String(thaiDateStr).trim().split('/');
+      if (parts.length === 3) {
+        const d = parts[0].padStart(2, '0');
+        const m = parts[1].padStart(2, '0');
+        let y = parseInt(parts[2], 10);
+        if (y > 2400) y = y - 543;
+        return y + '-' + m + '-' + d;
+      }
+      return thaiDateStr;
+    }
+
+    function isDateInRange(targetDateStr, startThai, endThai) {
+      const targetIso = targetDateStr;
+      const startIso = parseThaiDateToIso(startThai);
+      const endIso = parseThaiDateToIso(endThai);
+      return targetIso >= startIso && targetIso <= endIso;
+    }
+
+    function renderCalendarGrid() {
+      const thaiYear = calCurrentYear + 543;
+      const monthTitle = thaiMonthNames[calCurrentMonth] + ' ' + thaiYear;
+      document.getElementById('calMonthTitle').textContent = monthTitle;
+
+      const grid = document.getElementById('calDaysGrid');
+      grid.innerHTML = '';
+
+      const firstDayOfMonth = new Date(calCurrentYear, calCurrentMonth, 1).getDay(); // 0 = Sunday
+      const totalDaysInMonth = new Date(calCurrentYear, calCurrentMonth + 1, 0).getDate();
+
+      const today = new Date();
+      const todayIso = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+
+      // Empty padding cells for starting day
+      for (let i = 0; i < firstDayOfMonth; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'cal-day-cell text-gray-300 py-1.5';
+        grid.appendChild(emptyCell);
+      }
+
+      // Populate actual days
+      for (let day = 1; day <= totalDaysInMonth; day++) {
+        const dayStr = String(day).padStart(2, '0');
+        const monthStr = String(calCurrentMonth + 1).padStart(2, '0');
+        const dateIso = calCurrentYear + '-' + monthStr + '-' + dayStr;
+        const dateThai = dayStr + '/' + monthStr + '/' + thaiYear;
+
+        // Check for leave events on this day
+        const dayLeaves = (calendarData.events || []).filter(ev => isDateInRange(dateIso, ev.startDate, ev.endDate));
+        // Check for holiday
+        const dayHoliday = (calendarData.holidays || []).find(h => h.date === dateThai);
+
+        const cell = document.createElement('div');
+        const isToday = dateIso === todayIso;
+        const isSelected = dateIso === selectedDateStr;
+
+        let cellClasses = 'cal-day-cell border border-slate-100 rounded-lg p-1 text-center cursor-pointer hover:bg-slate-50 flex flex-col justify-between';
+        if (isToday) cellClasses += ' today bg-teal-50/70 border-teal-300';
+        if (isSelected) cellClasses += ' selected border-teal-600 bg-teal-50';
+        if (dayHoliday) cellClasses += ' bg-rose-50/50';
+
+        cell.className = cellClasses;
+        cell.onclick = () => selectCalendarDay(dateIso, dateThai, dayLeaves, dayHoliday);
+
+        // Day number
+        let dotsHtml = '<div class="flex items-center justify-center gap-0.5 mt-0.5">';
+        if (dayHoliday) {
+          dotsHtml += '<span class="w-1.5 h-1.5 rounded-full bg-red-600" title="' + dayHoliday.name + '"></span>';
+        }
+        dayLeaves.slice(0, 3).forEach(ev => {
+          let dotColor = 'bg-teal-500';
+          if (ev.leaveType === 'ลากิจ') dotColor = 'bg-amber-500';
+          if (ev.leaveType === 'ลาป่วย') dotColor = 'bg-rose-500';
+          dotsHtml += '<span class="w-1.5 h-1.5 rounded-full ' + dotColor + '" title="' + ev.employeeName + '"></span>';
+        });
+        if (dayLeaves.length > 3) {
+          dotsHtml += '<span class="text-[9px] text-gray-500 font-bold">+' + (dayLeaves.length - 3) + '</span>';
+        }
+        dotsHtml += '</div>';
+
+        cell.innerHTML = '<span class="text-xs font-semibold' + (dayHoliday ? ' text-rose-600' : '') + '">' + day + '</span>' + dotsHtml;
+        grid.appendChild(cell);
+      }
+
+      // If no day is selected yet, select today by default
+      if (!selectedDateStr) {
+        const todayDayStr = String(today.getDate()).padStart(2, '0');
+        const todayMonthStr = String(today.getMonth() + 1).padStart(2, '0');
+        const todayThai = todayDayStr + '/' + todayMonthStr + '/' + (today.getFullYear() + 543);
+        const dayLeaves = (calendarData.events || []).filter(ev => isDateInRange(todayIso, ev.startDate, ev.endDate));
+        const dayHoliday = (calendarData.holidays || []).find(h => h.date === todayThai);
+        selectCalendarDay(todayIso, todayThai, dayLeaves, dayHoliday);
+      }
+    }
+
+    function selectCalendarDay(dateIso, dateThai, dayLeaves, dayHoliday) {
+      selectedDateStr = dateIso;
+      document.getElementById('selectedDateTitle').textContent = 'รายการวันที่ ' + dateThai;
+
+      const container = document.getElementById('selectedDayEventsList');
+      const badge = document.getElementById('selectedDateCountBadge');
+
+      const totalCount = (dayLeaves ? dayLeaves.length : 0) + (dayHoliday ? 1 : 0);
+      badge.textContent = totalCount + ' รายการ';
+
+      if (totalCount === 0) {
+        container.innerHTML = '<div class="text-gray-400 text-center py-2 text-xs">ไม่มีรายการลาหรือวันหยุดในวันนี้</div>';
+        return;
+      }
+
+      let html = '';
+      if (dayHoliday) {
+        html += '<div class="bg-rose-50 border border-rose-200 rounded-lg p-2 text-xs flex items-center justify-between">' +
+          '<span class="font-bold text-rose-800"><i class="fa-solid fa-flag mr-1"></i> ' + dayHoliday.name + '</span>' +
+          '<span class="text-[10px] bg-rose-200 text-rose-800 px-1.5 py-0.5 rounded font-bold">วันหยุดบริษัท</span>' +
+        '</div>';
+      }
+
+      (dayLeaves || []).forEach(ev => {
+        const badgeBg = ev.leaveType === 'ลาพักร้อน' ? 'bg-teal-100 text-teal-800' : (ev.leaveType === 'ลากิจ' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800');
+        html += '<div class="bg-white border border-slate-200 rounded-lg p-2 shadow-xs space-y-1">' +
+          '<div class="flex items-center justify-between">' +
+            '<span class="font-bold text-gray-800"><i class="fa-solid fa-user text-gray-400 mr-1"></i> คุณ ' + ev.employeeName + '</span>' +
+            '<span class="text-[10px] px-2 py-0.5 rounded-full font-bold ' + badgeBg + '">' + ev.leaveType + ' (' + ev.days + ' วัน)</span>' +
+          '</div>' +
+          '<div class="text-[11px] text-gray-500">' + ev.startDate + (ev.startDate !== ev.endDate ? ' ถึง ' + ev.endDate : '') + '</div>' +
+          (ev.reason ? '<div class="text-[11px] text-gray-600 bg-slate-50 p-1 rounded">' + ev.reason + '</div>' : '') +
+        '</div>';
+      });
+
+      container.innerHTML = html;
+
+      // Re-highlight active cell
+      const cells = document.querySelectorAll('.cal-day-cell');
+      cells.forEach(c => c.classList.remove('selected'));
+    }
+
+    function renderUpcomingEvents() {
+      const container = document.getElementById('upcomingEventsList');
+      const allEvents = calendarData.events || [];
+
+      if (allEvents.length === 0) {
+        container.innerHTML = '<div class="text-center py-4 text-gray-400 text-xs bg-white rounded-xl border border-slate-200">ไม่มีรายการลาที่บันทึกไว้ในระบบ</div>';
+        return;
+      }
+
+      const recent = allEvents.slice(0, 5);
+      container.innerHTML = recent.map(ev => {
+        const badgeBg = ev.leaveType === 'ลาพักร้อน' ? 'bg-teal-100 text-teal-800' : (ev.leaveType === 'ลากิจ' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800');
+        return '<div class="bg-white border border-slate-200/90 rounded-xl p-3 shadow-xs space-y-1">' +
+          '<div class="flex items-center justify-between">' +
+            '<span class="font-bold text-gray-800 text-xs"><i class="fa-solid fa-user-clock text-teal-600 mr-1"></i> คุณ ' + ev.employeeName + '</span>' +
+            '<span class="text-[10px] px-2 py-0.5 rounded-full font-bold ' + badgeBg + '">' + ev.leaveType + '</span>' +
+          '</div>' +
+          '<div class="text-xs text-gray-600"><i class="fa-regular fa-calendar text-gray-400 mr-1"></i> ' + ev.startDate + (ev.startDate !== ev.endDate ? ' ถึง ' + ev.endDate : '') + ' (' + ev.days + ' วัน)</div>' +
+        '</div>';
+      }).join('');
     }
   </script>
 
