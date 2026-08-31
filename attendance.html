@@ -434,6 +434,34 @@
       'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
     ];
 
+    // Helper: จัดการแสดงชื่อพนักงาน ไม่ให้มี "คุณ นาย" หรือคำนำหน้าซ้อน
+    function formatPersonName(name) {
+      if (!name) return '';
+      let str = String(name).trim();
+      str = str.replace(/^(คุณ\s*|นาย\s*|นางสาว\s*|นาง\s*|ด\.ช\.\s*|ด\.หญิง\s*|ด\.ญ\.\s*)+/gi, '');
+      return 'คุณ' + str.trim();
+    }
+
+    // Helper: ล้างวันที่ให้เป็น พ.ศ. (DD/MM/YYYY) ที่ถูกต้องเสมอ ป้องกันปี 3112
+    function sanitizeThaiDateStr(val) {
+      if (!val) return '';
+      const str = String(val).trim();
+      const parts = str.split('/');
+      if (parts.length === 3) {
+        const d = parts[0].padStart(2, '0');
+        const m = parts[1].padStart(2, '0');
+        let y = parseInt(parts[2], 10);
+        while (y > 3000) {
+          y -= 543;
+        }
+        if (y < 2400) {
+          y += 543;
+        }
+        return d + '/' + m + '/' + y;
+      }
+      return str;
+    }
+
     // 1. Initial Router & LIFF Boot
     async function initializeApp() {
       try {
@@ -467,7 +495,6 @@
           currentActiveTab = 'attendance';
         }
 
-        // Set calendar to current system date
         const today = new Date();
         calCurrentYear = today.getFullYear();
         calCurrentMonth = today.getMonth();
@@ -492,7 +519,7 @@
             if (profile.pictureUrl) {
               document.getElementById('userAvatar').src = profile.pictureUrl;
             }
-            document.getElementById('empName').textContent = profile.displayName;
+            document.getElementById('empName').textContent = formatPersonName(profile.displayName);
           } else {
             liff.login();
             return;
@@ -647,10 +674,10 @@
     // 4. Render Attendance UI
     function renderAttendanceUI(state) {
       currentAttendanceState = state;
-      document.getElementById('displayDate').textContent = state.todayDate || 'วันนี้';
+      document.getElementById('displayDate').textContent = sanitizeThaiDateStr(state.todayDate) || 'วันนี้';
 
       const emp = state.employee;
-      document.getElementById('empName').textContent = emp.name;
+      document.getElementById('empName').textContent = formatPersonName(emp.name);
       if (emp.nickname) {
         const nickEl = document.getElementById('empNickname');
         nickEl.textContent = emp.nickname;
@@ -794,7 +821,7 @@
       if (!state || !state.registered) return;
 
       const q = state.quota || {};
-      document.getElementById('thaiYearBadge').textContent = state.currentYear || '2569';
+      document.getElementById('thaiYearBadge').textContent = '2569';
       document.getElementById('vacationRemainingDisplay').textContent = q.remainingVacation !== undefined ? q.remainingVacation : 6;
       document.getElementById('vacationTotalDisplay').textContent = q.annualVacation !== undefined ? q.annualVacation : 6;
       document.getElementById('vacationUsedDisplay').textContent = q.usedVacation || 0;
@@ -896,6 +923,8 @@
 
       container.innerHTML = history.map(item => {
         const st = statusMap[item.status] || statusMap['Pending'];
+        const cleanStart = sanitizeThaiDateStr(item.startDate);
+        const cleanEnd = sanitizeThaiDateStr(item.endDate);
         return '<div class="bg-white border border-slate-200/90 rounded-xl p-3 shadow-sm space-y-1.5">' +
           '<div class="flex items-center justify-between">' +
             '<div class="flex items-center gap-1.5">' +
@@ -908,12 +937,12 @@
           '</div>' +
           '<div class="text-xs text-gray-600 flex items-center gap-1.5">' +
             '<i class="fa-regular fa-calendar text-gray-400"></i>' +
-            '<span>' + item.startDate + (item.startDate !== item.endDate ? ' ถึง ' + item.endDate : '') + '</span>' +
+            '<span>' + cleanStart + (cleanStart !== cleanEnd ? ' ถึง ' + cleanEnd : '') + '</span>' +
           '</div>' +
           (item.reason ? '<div class="text-xs text-gray-500 bg-slate-50 p-1.5 rounded border border-slate-100">' + item.reason + '</div>' : '') +
           '<div class="flex items-center justify-between text-[10px] text-gray-400 pt-1 border-t border-gray-100">' +
             '<span>' + item.requestId + '</span>' +
-            '<span>' + item.timestamp + '</span>' +
+            '<span>' + sanitizeThaiDateStr(item.timestamp) + '</span>' +
           '</div>' +
         '</div>';
       }).join('');
@@ -1047,7 +1076,8 @@
 
     function parseThaiDateToIso(thaiDateStr) {
       if (!thaiDateStr) return '';
-      const parts = String(thaiDateStr).trim().split('/');
+      const clean = sanitizeThaiDateStr(thaiDateStr);
+      const parts = clean.split('/');
       if (parts.length === 3) {
         const d = parts[0].padStart(2, '0');
         const m = parts[1].padStart(2, '0');
@@ -1096,7 +1126,7 @@
         // Check for leave events on this day
         const dayLeaves = (calendarData.events || []).filter(ev => isDateInRange(dateIso, ev.startDate, ev.endDate));
         // Check for holiday
-        const dayHoliday = (calendarData.holidays || []).find(h => h.date === dateThai);
+        const dayHoliday = (calendarData.holidays || []).find(h => sanitizeThaiDateStr(h.date) === dateThai);
 
         const cell = document.createElement('div');
         const isToday = dateIso === todayIso;
@@ -1110,7 +1140,7 @@
         cell.className = cellClasses;
         cell.onclick = () => selectCalendarDay(dateIso, dateThai, dayLeaves, dayHoliday);
 
-        // Day number
+        // Day number & dots
         let dotsHtml = '<div class="flex items-center justify-center gap-0.5 mt-0.5">';
         if (dayHoliday) {
           dotsHtml += '<span class="w-1.5 h-1.5 rounded-full bg-red-600" title="' + dayHoliday.name + '"></span>';
@@ -1119,7 +1149,7 @@
           let dotColor = 'bg-teal-500';
           if (ev.leaveType === 'ลากิจ') dotColor = 'bg-amber-500';
           if (ev.leaveType === 'ลาป่วย') dotColor = 'bg-rose-500';
-          dotsHtml += '<span class="w-1.5 h-1.5 rounded-full ' + dotColor + '" title="' + ev.employeeName + '"></span>';
+          dotsHtml += '<span class="w-1.5 h-1.5 rounded-full ' + dotColor + '" title="' + formatPersonName(ev.employeeName) + '"></span>';
         });
         if (dayLeaves.length > 3) {
           dotsHtml += '<span class="text-[9px] text-gray-500 font-bold">+' + (dayLeaves.length - 3) + '</span>';
@@ -1136,14 +1166,14 @@
         const todayMonthStr = String(today.getMonth() + 1).padStart(2, '0');
         const todayThai = todayDayStr + '/' + todayMonthStr + '/' + (today.getFullYear() + 543);
         const dayLeaves = (calendarData.events || []).filter(ev => isDateInRange(todayIso, ev.startDate, ev.endDate));
-        const dayHoliday = (calendarData.holidays || []).find(h => h.date === todayThai);
+        const dayHoliday = (calendarData.holidays || []).find(h => sanitizeThaiDateStr(h.date) === todayThai);
         selectCalendarDay(todayIso, todayThai, dayLeaves, dayHoliday);
       }
     }
 
     function selectCalendarDay(dateIso, dateThai, dayLeaves, dayHoliday) {
       selectedDateStr = dateIso;
-      document.getElementById('selectedDateTitle').textContent = 'รายการวันที่ ' + dateThai;
+      document.getElementById('selectedDateTitle').textContent = 'รายการวันที่ ' + sanitizeThaiDateStr(dateThai);
 
       const container = document.getElementById('selectedDayEventsList');
       const badge = document.getElementById('selectedDateCountBadge');
@@ -1166,19 +1196,20 @@
 
       (dayLeaves || []).forEach(ev => {
         const badgeBg = ev.leaveType === 'ลาพักร้อน' ? 'bg-teal-100 text-teal-800' : (ev.leaveType === 'ลากิจ' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800');
+        const cleanStart = sanitizeThaiDateStr(ev.startDate);
+        const cleanEnd = sanitizeThaiDateStr(ev.endDate);
         html += '<div class="bg-white border border-slate-200 rounded-lg p-2 shadow-xs space-y-1">' +
           '<div class="flex items-center justify-between">' +
-            '<span class="font-bold text-gray-800"><i class="fa-solid fa-user text-gray-400 mr-1"></i> คุณ ' + ev.employeeName + '</span>' +
+            '<span class="font-bold text-gray-800"><i class="fa-solid fa-user text-gray-400 mr-1"></i> ' + formatPersonName(ev.employeeName) + '</span>' +
             '<span class="text-[10px] px-2 py-0.5 rounded-full font-bold ' + badgeBg + '">' + ev.leaveType + ' (' + ev.days + ' วัน)</span>' +
           '</div>' +
-          '<div class="text-[11px] text-gray-500">' + ev.startDate + (ev.startDate !== ev.endDate ? ' ถึง ' + ev.endDate : '') + '</div>' +
+          '<div class="text-[11px] text-gray-500">' + cleanStart + (cleanStart !== cleanEnd ? ' ถึง ' + cleanEnd : '') + '</div>' +
           (ev.reason ? '<div class="text-[11px] text-gray-600 bg-slate-50 p-1 rounded">' + ev.reason + '</div>' : '') +
         '</div>';
       });
 
       container.innerHTML = html;
 
-      // Re-highlight active cell
       const cells = document.querySelectorAll('.cal-day-cell');
       cells.forEach(c => c.classList.remove('selected'));
     }
@@ -1195,12 +1226,14 @@
       const recent = allEvents.slice(0, 5);
       container.innerHTML = recent.map(ev => {
         const badgeBg = ev.leaveType === 'ลาพักร้อน' ? 'bg-teal-100 text-teal-800' : (ev.leaveType === 'ลากิจ' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800');
+        const cleanStart = sanitizeThaiDateStr(ev.startDate);
+        const cleanEnd = sanitizeThaiDateStr(ev.endDate);
         return '<div class="bg-white border border-slate-200/90 rounded-xl p-3 shadow-xs space-y-1">' +
           '<div class="flex items-center justify-between">' +
-            '<span class="font-bold text-gray-800 text-xs"><i class="fa-solid fa-user-clock text-teal-600 mr-1"></i> คุณ ' + ev.employeeName + '</span>' +
+            '<span class="font-bold text-gray-800 text-xs"><i class="fa-solid fa-user-clock text-teal-600 mr-1"></i> ' + formatPersonName(ev.employeeName) + '</span>' +
             '<span class="text-[10px] px-2 py-0.5 rounded-full font-bold ' + badgeBg + '">' + ev.leaveType + '</span>' +
           '</div>' +
-          '<div class="text-xs text-gray-600"><i class="fa-regular fa-calendar text-gray-400 mr-1"></i> ' + ev.startDate + (ev.startDate !== ev.endDate ? ' ถึง ' + ev.endDate : '') + ' (' + ev.days + ' วัน)</div>' +
+          '<div class="text-xs text-gray-600"><i class="fa-regular fa-calendar text-gray-400 mr-1"></i> ' + cleanStart + (cleanStart !== cleanEnd ? ' ถึง ' + cleanEnd : '') + ' (' + ev.days + ' วัน)</div>' +
         '</div>';
       }).join('');
     }
